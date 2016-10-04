@@ -33,6 +33,9 @@ public class FayeSubscriptionModel {
     public var hashValue: Int {
         return subscription.hashValue
     }
+
+    public var messageHeaderDict : NSDictionary? = nil
+
     
     // MARK:
     // MARK: Init
@@ -41,6 +44,7 @@ public class FayeSubscriptionModel {
         self.subscription = subscription
         self.channel = channel
         self.clientId = clientId
+        self.messageHeaderDict = nil
     }
     
     // MARK:
@@ -68,9 +72,13 @@ public class FayeSubscriptionModel {
             throw FayeSubscriptionModelError.ClientIdNotValid
         }
         
-        return [Bayeux.Channel.rawValue: channel.rawValue,
+        var dict : [String : AnyObject] = [Bayeux.Channel.rawValue: channel.rawValue,
                 Bayeux.ClientId.rawValue: clientId,
                 Bayeux.Subscription.rawValue: subscription]
+        if let headerDict = self.messageHeaderDict {
+            headerDict.forEach { dict[$0 as! String] = $1 as! [String : AnyObject] }
+        }
+        return dict
     }
 }
 

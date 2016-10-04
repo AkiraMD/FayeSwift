@@ -103,6 +103,8 @@ extension FayeClient {
     func subscribe(var model:FayeSubscriptionModel) {
         dispatch_sync(writeOperationQueue) { [unowned self] in
             do {
+                model.messageHeaderDict = self.messageHeaderDict
+
                 let json = try model.jsonString()
                 
                 self.transport?.writeString(json)

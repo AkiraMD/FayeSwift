@@ -54,6 +54,8 @@ public class FayeClient : TransportDelegate {
 
   var channelSubscriptionBlocks = Dictionary<String, ChannelSubscriptionBlock>()
 
+  public var messageHeaderDict : NSDictionary?
+
   lazy var pendingSubscriptionSchedule: NSTimer = {
         return NSTimer.scheduledTimerWithTimeInterval(
             45,
@@ -87,6 +89,7 @@ public class FayeClient : TransportDelegate {
   public convenience init(aFayeURLString:String, channel:String, channelBlock:ChannelSubscriptionBlock) {
     self.init(aFayeURLString: aFayeURLString, channel: channel)
     self.channelSubscriptionBlocks[channel] = channelBlock;
+    self.timeOut = 90000
   }
   
   deinit {

@@ -14,7 +14,13 @@ public extension FayeClient {
     
     ///  Validate whatever a subscription has been subscribed correctly 
     public func isSubscribedToChannel(channel:String) -> Bool {
-        return self.openSubscriptions.contains { $0.subscription == channel }
+        // subscribed channels could be using **
+        for model : FayeSubscriptionModel in self.openSubscriptions {
+            if channel.containsString(model.subscription.stringByReplacingOccurrencesOfString("**", withString: "")) {
+                return true
+            }
+        }
+        return false
     }
     
     ///  Validate faye transport is connected
