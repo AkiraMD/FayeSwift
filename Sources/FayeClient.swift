@@ -93,7 +93,11 @@ public class FayeClient : TransportDelegate {
   }
   
   deinit {
-    pendingSubscriptionSchedule.invalidate()
+    self.cleanup()
+  }
+
+  public cleanup() {
+    pendingSubscriptionSchedule.invalidate()  
   }
 
   // MARK: Client
