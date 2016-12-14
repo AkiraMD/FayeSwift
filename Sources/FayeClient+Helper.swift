@@ -13,10 +13,10 @@ public extension FayeClient {
     // MARK: Helper
     
     ///  Validate whatever a subscription has been subscribed correctly 
-    public func isSubscribedToChannel(channel:String) -> Bool {
+    public func isSubscribedToChannel(_ channel:String) -> Bool {
         // subscribed channels could be using **
         for model : FayeSubscriptionModel in self.openSubscriptions {
-            if channel.containsString(model.subscription.stringByReplacingOccurrencesOfString("**", withString: "")) {
+            if channel.contains(model.subscription.replacingOccurrences(of: "**", with: "")) {
                 return true
             }
         }

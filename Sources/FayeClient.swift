@@ -11,11 +11,11 @@ import SwiftyJSON
 
 // MARK: Subscription State
 public enum FayeSubscriptionState {
-    case Pending(FayeSubscriptionModel)
-    case Subscribed(FayeSubscriptionModel)
-    case Queued(FayeSubscriptionModel)
-    case SubscribingTo(FayeSubscriptionModel)
-    case Unknown(FayeSubscriptionModel?)
+    case pending(FayeSubscriptionModel)
+    case subscribed(FayeSubscriptionModel)
+    case queued(FayeSubscriptionModel)
+    case subscribingTo(FayeSubscriptionModel)
+    case unknown(FayeSubscriptionModel?)
 }
 
 // MARK: Type Aliases
@@ -23,8 +23,8 @@ public typealias ChannelSubscriptionBlock = (NSDictionary) -> Void
 
 
 // MARK: FayeClient
-public class FayeClient : TransportDelegate {
-  public var fayeURLString:String {
+open class FayeClient : TransportDelegate {
+  open var fayeURLString:String {
     didSet {
       if let transport = self.transport {
         transport.urlString = fayeURLString
@@ -32,12 +32,12 @@ public class FayeClient : TransportDelegate {
     }
   }
     
-  public var fayeClientId:String?
-  public weak var delegate:FayeClientDelegate?
+  open var fayeClientId:String?
+  open weak var delegate:FayeClientDelegate?
   
   var transport:WebsocketTransport?
   
-  public internal(set) var fayeConnected:Bool? {
+  open internal(set) var fayeConnected:Bool? {
     didSet {
       if fayeConnected == false {
         unsubscribeAllSubscriptions()
@@ -54,11 +54,11 @@ public class FayeClient : TransportDelegate {
 
   var channelSubscriptionBlocks = Dictionary<String, ChannelSubscriptionBlock>()
 
-  public var messageHeaderDict : NSDictionary?
+  open var messageHeaderDict : NSDictionary?
 
-  lazy var pendingSubscriptionSchedule: NSTimer = {
-        return NSTimer.scheduledTimerWithTimeInterval(
-            45,
+  lazy var pendingSubscriptionSchedule: Timer = {
+        return Timer.scheduledTimer(
+            timeInterval: 45,
             target: self,
             selector: #selector(pendingSubscriptionsAction(_:)),
             userInfo: nil, 
@@ -69,8 +69,8 @@ public class FayeClient : TransportDelegate {
   /// Default in 10 seconds
   var timeOut: Int
 
-  let readOperationQueue = dispatch_queue_create("com.hamin.fayeclient.read", DISPATCH_QUEUE_SERIAL)
-  let writeOperationQueue = dispatch_queue_create("com.hamin.fayeclient.write", DISPATCH_QUEUE_CONCURRENT)
+  let readOperationQueue = DispatchQueue(label: "com.hamin.fayeclient.read", attributes: [])
+  let writeOperationQueue = DispatchQueue(label: "com.hamin.fayeclient.write", attributes: DispatchQueue.Attributes.concurrent)
     
   // MARK: Init
   public init(aFayeURLString:String, channel:String?, timeoutAdvice:Int=10000) {
@@ -86,7 +86,7 @@ public class FayeClient : TransportDelegate {
     }
   }
 
-  public convenience init(aFayeURLString:String, channel:String, channelBlock:ChannelSubscriptionBlock) {
+  public convenience init(aFayeURLString:String, channel:String, channelBlock:@escaping ChannelSubscriptionBlock) {
     self.init(aFayeURLString: aFayeURLString, channel: channel)
     self.channelSubscriptionBlocks[channel] = channelBlock;
     self.timeOut = 90000
@@ -96,12 +96,12 @@ public class FayeClient : TransportDelegate {
     self.cleanup()
   }
 
-  public cleanup() {
+  open func cleanup() {
     pendingSubscriptionSchedule.invalidate()  
   }
 
   // MARK: Client
-  public func connectToServer() {
+  open func connectToServer() {
     if self.connectionInitiated != true {
       self.transport?.openConnection()
       self.connectionInitiated = true;
@@ -110,33 +110,33 @@ public class FayeClient : TransportDelegate {
     }
   }
 
-  public func disconnectFromServer() {
+  open func disconnectFromServer() {
     unsubscribeAllSubscriptions()
     
     self.disconnect()
   }
 
-  public func sendMessage(messageDict: NSDictionary, channel:String) {
+  open func sendMessage(_ messageDict: NSDictionary, channel:String) {
     self.publish(messageDict as! Dictionary, channel: channel)
   }
 
-  public func sendMessage(messageDict:[String:AnyObject], channel:String) {
+  open func sendMessage(_ messageDict:[String:AnyObject], channel:String) {
     self.publish(messageDict, channel: channel)
   }
     
-  public func sendPing(data: NSData, completion: (() -> ())?) {
-    dispatch_async(writeOperationQueue) { [unowned self] in
+  open func sendPing(_ data: Data, completion: (() -> ())?) {
+    writeOperationQueue.async { [unowned self] in
       self.transport?.sendPing(data, completion: completion)
     }
   }
 
-  public func subscribeToChannel(model:FayeSubscriptionModel, block:ChannelSubscriptionBlock?=nil) -> FayeSubscriptionState {
+  open func subscribeToChannel(_ model:FayeSubscriptionModel, block:ChannelSubscriptionBlock?=nil) -> FayeSubscriptionState {
     guard !self.isSubscribedToChannel(model.subscription) else {
-      return .Subscribed(model)
+      return .subscribed(model)
     }
     
-    guard !self.pendingSubscriptions.contains({ $0 == model }) else {
-      return .Pending(model)
+    guard !self.pendingSubscriptions.contains(where: { $0 == model }) else {
+      return .pending(model)
     }
     
     if let block = block {
@@ -146,22 +146,22 @@ public class FayeClient : TransportDelegate {
     if self.fayeConnected == false {
       self.queuedSubscriptions.append(model)
         
-      return .Queued(model)
+      return .queued(model)
     }
     
     self.subscribe(model)
     
-    return .SubscribingTo(model)
+    return .subscribingTo(model)
   }
     
-  public func subscribeToChannel(channel:String, block:ChannelSubscriptionBlock?=nil) -> FayeSubscriptionState {
+  open func subscribeToChannel(_ channel:String, block:ChannelSubscriptionBlock?=nil) -> FayeSubscriptionState {
     return subscribeToChannel(
         FayeSubscriptionModel(subscription: channel, clientId: fayeClientId),
         block: block
     )
   }
     
-  public func unsubscribeFromChannel(channel:String) {
+  open func unsubscribeFromChannel(_ channel:String) {
     removeChannelFromQueuedSubscriptions(channel)
     
     self.unsubscribe(channel)
